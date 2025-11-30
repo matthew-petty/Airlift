@@ -117,7 +117,48 @@ def clean_log_file():
     """
     log_file = "test_log.txt"
     yield log_file
-    
+
     # Cleanup
     if os.path.exists(log_file):
         os.remove(log_file)
+
+
+@pytest.fixture(scope="session")
+def rclone_test_config():
+    """
+    Test configuration for rclone integration tests.
+    Checks if 'airlift-test-remote' is configured in rclone.
+    """
+    import subprocess
+    import shutil
+
+    # Check if rclone is installed
+    if shutil.which('rclone') is None:
+        pytest.skip("rclone not installed")
+
+    # Check if test remote is configured
+    try:
+        result = subprocess.run(
+            ['rclone', 'listremotes'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if result.returncode != 0:
+            pytest.skip(f"rclone listremotes failed: {result.stderr}")
+
+        remotes = [r.strip().rstrip(':') for r in result.stdout.strip().split('\n') if r.strip()]
+
+        if 'airlift-test-remote' not in remotes:
+            pytest.skip(
+                "rclone remote 'airlift-test-remote' not configured. "
+                "Run 'rclone config' to set up a test remote."
+            )
+
+    except subprocess.TimeoutExpired:
+        pytest.skip("rclone listremotes timed out")
+
+    return {
+        "remote": "airlift-test-remote",
+        "base_url": os.getenv("RCLONE_TEST_BASE_URL"),  # Optional
+    }
