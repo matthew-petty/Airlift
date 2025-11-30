@@ -13,7 +13,8 @@ An automated method to upload & merge *.csv or *.json data files with attachment
 - Automated uploading of `.csv` or `.json` data to Airtable
 - Ability to update and auto-create new entries for [single select field](https://support.airtable.com/docs/single-select-field) and [multiple select field](https://support.airtable.com/docs/multiple-select-field)
 - No subscription of third party platform required
-- Ability to upload attachments via build-in Dropbox client
+- Ability to upload attachments via built-in Dropbox client
+- Ability to upload attachments via [rclone](https://rclone.org/) (supports 70+ cloud storage providers)
 - Ability to upload attachments to multiple attachment columns
 - Uses long-lived refresh token for Dropbox client
 
@@ -29,6 +30,7 @@ An automated method to upload & merge *.csv or *.json data files with attachment
 - [Prerequisite](#prerequisite)
   - [Airtable](#airtable)
   - [Dropbox](#dropbox)
+  - [rclone](#rclone)
 - [Column Types](#column-types)
 - [Examples](#examples)
 - [Use Cases](#use-cases)
@@ -119,6 +121,11 @@ dropbox options:
   --dropbox-refresh-token            switch to change your refresh token
   --attachment-columns               specify one or more attachment columns
   --attachment-columns-map           specify how the attachment column must be mapped in Airtable
+
+rclone options:
+  --rclone-remote REMOTE             rclone remote name (configure via 'rclone config')
+  --rclone-base-url URL              base URL for public file access (fallback if 'rclone link' unsupported)
+  --rclone-timeout SECONDS           timeout in seconds for rclone operations (default: 120)
 
 column options:
   --disable-bypass-column-creation   creates new columns that are not present in Airtable's table
@@ -297,6 +304,35 @@ UPLOAD_LOG="/Users/xxx/Desktop/Airlift/log.txt"
 
 $TOOL_PATH --dropbox-token $DROPBOX_TOKEN --dropbox-refresh-token --log $UPLOAD_LOG
 ```
+
+</p>
+</details>
+
+### rclone
+
+As an alternative to Dropbox, Airlift supports [rclone](https://rclone.org/) for uploading attachments. rclone supports over 70 cloud storage providers including WebDAV, S3, Google Drive, and more.
+
+<details><summary>Setting up rclone:</summary>
+<p>
+
+1. Install rclone from [https://rclone.org/install/](https://rclone.org/install/)
+2. Configure a remote using `rclone config`
+3. Use the remote name with `--rclone-remote`
+
+```bash
+# Example: Configure a WebDAV remote
+rclone config
+# Follow prompts to create a remote named 'mywebdav'
+
+# Use with Airlift
+airlift --token $TOKEN --base $BASE --table $TABLE \
+    --rclone-remote mywebdav \
+    --rclone-base-url https://your-server.com/files \
+    --attachment-columns "Image Filename" \
+    data.csv
+```
+
+**Note:** For remotes that don't support `rclone link` (like WebDAV), you must provide `--rclone-base-url` to construct public URLs for attachments.
 
 </p>
 </details>
