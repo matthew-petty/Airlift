@@ -91,6 +91,18 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
                 "metavar":"",
             },
         },
+        "rclone options": {
+            "--rclone-remote": {
+                "type": str,
+                "help": "rclone remote name (configure via 'rclone config')",
+                "metavar": "REMOTE",
+            },
+            "--rclone-base-url": {
+                "type": str,
+                "help": "base URL for public file access (fallback if 'rclone link' unsupported)",
+                "metavar": "URL",
+            },
+        },
         "column_options": {
             "--disable-bypass-column-creation": {
                 "action": "store_true",

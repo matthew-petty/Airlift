@@ -13,7 +13,8 @@ from airlift.csv_data import csv_read
 from airlift.airtable_upload import Upload
 from airlift.json_data import json_read
 from airlift.airtable_client import new_client
-from airlift.dropbox_client import dropbox_client,change_refresh_access_token
+from airlift.dropbox_client import dropbox_client, change_refresh_access_token
+from airlift.rclone_client import rclone_client
 from icecream import ic
 
 logger = logging.getLogger(__name__)
@@ -33,9 +34,15 @@ def cli(*argv: str) -> None:
 
         if not args.dropbox_refresh_token: #if dropbox-refresh-token flag is not present, continue normal procedure
 
-            #creating drop box client
-            if args.dropbox_token:
-                dbx = dropbox_client(args.dropbox_token,args.md)
+            # Creating storage client (rclone or dropbox)
+            if args.rclone_remote:
+                dbx = rclone_client(
+                    remote=args.rclone_remote,
+                    base_url=getattr(args, 'rclone_base_url', None),
+                    md=args.md
+                )
+            elif args.dropbox_token:
+                dbx = dropbox_client(args.dropbox_token, args.md)
             else:
                 dbx = None
 
