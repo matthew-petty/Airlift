@@ -4,6 +4,7 @@ import subprocess
 import shutil
 from datetime import datetime
 from typing import Optional
+from urllib.parse import quote
 
 from airlift.utils_exceptions import CriticalError
 
@@ -140,12 +141,9 @@ class rclone_client:
         except subprocess.TimeoutExpired:
             raise CriticalError(f"rclone command timed out after {timeout}s: {' '.join(cmd)}")
 
-    def upload_to_dropbox(self, filename: str) -> str:
+    def upload_file(self, filename: str) -> str:
         """
         Upload file to remote and return public URL.
-
-        Method name kept as upload_to_dropbox for interface compatibility
-        with dropbox_client.
 
         Args:
             filename: Path to local file
@@ -153,9 +151,9 @@ class rclone_client:
         Returns:
             Public URL for the uploaded file
         """
-        # Validate local file exists
-        if not os.path.exists(filename):
-            raise CriticalError(f"File not found: {filename}")
+        # Validate local file exists and is a file (not directory)
+        if not os.path.isfile(filename):
+            raise CriticalError(f"File not found or not a regular file: {filename}")
 
         # Construct remote path (preserve parent directory like dropbox_client)
         file_path = os.path.split(filename)
@@ -165,13 +163,10 @@ class rclone_client:
         if file_path[0]:
             last_dir = os.path.split(file_path[0])
 
-        if last_dir:
-            if last_dir[0] is None:
-                final_path = f'{base_filename}'
-            else:
-                final_path = f'{last_dir[1]}/{base_filename}'
+        if last_dir and last_dir[1]:
+            final_path = f'{last_dir[1]}/{base_filename}'
         else:
-            final_path = f'{base_filename}'
+            final_path = base_filename
 
         remote_path = f"{self.sub_folder}/{final_path}"
         remote_full = f"{self.remote}:{remote_path}"
@@ -219,7 +214,9 @@ class rclone_client:
 
         # Strategy 2: Fall back to base_url + path
         if self.base_url:
-            fallback_url = f"{self.base_url.rstrip('/')}{remote_path}"
+            # URL-encode the path to handle spaces and special characters
+            encoded_path = quote(remote_path, safe='/')
+            fallback_url = f"{self.base_url.rstrip('/')}{encoded_path}"
             logger.debug(f"Using fallback URL: {fallback_url}")
             return fallback_url
 

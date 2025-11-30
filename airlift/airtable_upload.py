@@ -7,7 +7,6 @@ from airlift.dropbox_client import dropbox_client
 import os
 from tqdm import tqdm
 from icecream import ic
-from airlift.dropbox_client import dropbox_client
 from airlift.utils_exceptions import CriticalError
 
 logger = logging.getLogger(__name__)
@@ -31,6 +30,13 @@ class Upload:
     def write_log(self,file_path, line):
         with open(file_path, 'a') as file:
             file.write(line + '\n')
+
+    def _upload_attachment(self, file_path: str) -> str:
+        """Upload attachment using the configured storage client (rclone or dropbox)."""
+        if hasattr(self.dbx, 'upload_file'):
+            return self.dbx.upload_file(file_path)
+        else:
+            return self.dbx.upload_to_dropbox(file_path)
 
     def upload_data(self) -> None:
         logger.info("Uploding data now!")
@@ -71,10 +77,10 @@ class Upload:
                                 try:
                                     if self.dirname:
                                         file_path = f"{self.dirname}/{value}"
-                                        data['fields'][key] = [{"url": self.dbx.upload_to_dropbox(file_path)}]
+                                        data['fields'][key] = [{"url": self._upload_attachment(file_path)}]
                                     else:
                                         file_path = f"{value}"
-                                        data['fields'][key] = [{"url": self.dbx.upload_to_dropbox(file_path)}]
+                                        data['fields'][key] = [{"url": self._upload_attachment(file_path)}]
                                     
                                 except Exception as e:
                                     logger.error(f"Error uploading {value}: {type(e).__name__}: {str(e)}")
@@ -90,11 +96,11 @@ class Upload:
                                         if self.dirname:
                                             file_path = f"{self.dirname}/{value}"
                                             data['fields'][attachments[1]] = [
-                                                {"url": self.dbx.upload_to_dropbox(file_path)}]
-                                        else: 
+                                                {"url": self._upload_attachment(file_path)}]
+                                        else:
                                             file_path = f"{value}"
                                             data['fields'][attachments[1]] = [
-                                                {"url": self.dbx.upload_to_dropbox(file_path)}]
+                                                {"url": self._upload_attachment(file_path)}]
                                     except Exception as e:
                                         logger.error(f"Error uploading {value}: {type(e).__name__}: {str(e)}")
                                         self.write_log(self.log,f"{value} Could not be found!")
