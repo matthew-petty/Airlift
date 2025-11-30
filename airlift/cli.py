@@ -39,7 +39,8 @@ def cli(*argv: str) -> None:
                 dbx = rclone_client(
                     remote=args.rclone_remote,
                     base_url=getattr(args, 'rclone_base_url', None),
-                    md=args.md
+                    md=args.md,
+                    timeout=getattr(args, 'rclone_timeout', 120)
                 )
             elif args.dropbox_token:
                 dbx = dropbox_client(args.dropbox_token, args.md)

@@ -102,6 +102,12 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
                 "help": "base URL for public file access (fallback if 'rclone link' unsupported)",
                 "metavar": "URL",
             },
+            "--rclone-timeout": {
+                "type": int,
+                "default": 120,
+                "help": "timeout in seconds for rclone operations (default: 120)",
+                "metavar": "SECONDS",
+            },
         },
         "column_options": {
             "--disable-bypass-column-creation": {

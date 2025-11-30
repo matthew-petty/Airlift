@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import subprocess
 import shutil
@@ -19,6 +20,9 @@ class rclone_client:
     Supports any pre-configured rclone remote (WebDAV, S3, Dropbox, etc.).
     """
 
+    # Valid remote name pattern (alphanumeric, underscore, hyphen, space)
+    VALID_REMOTE_PATTERN = re.compile(r'^[a-zA-Z0-9_\- ]+$')
+
     # rclone flags for efficient single-file uploads
     UPLOAD_FLAGS = [
         '--no-traverse',
@@ -28,7 +32,13 @@ class rclone_client:
         '--stats', '0',
     ]
 
-    def __init__(self, remote: str, base_url: Optional[str] = None, md: bool = False):
+    def __init__(
+        self,
+        remote: str,
+        base_url: Optional[str] = None,
+        md: bool = False,
+        timeout: int = 120
+    ):
         """
         Initialize rclone client.
 
@@ -36,9 +46,14 @@ class rclone_client:
             remote: rclone remote name (e.g., 'mywebdav', 'mydropbox')
             base_url: Fallback base URL for public file access when 'rclone link' is unsupported
             md: Use 'Marker Data' folder structure (for compatibility with --md flag)
+            timeout: Timeout in seconds for upload operations (default: 120)
         """
         self.remote = remote.rstrip(':')
         self.base_url = base_url
+        self.timeout = timeout
+
+        # Validate remote name format (security check)
+        self._validate_remote_name()
 
         # Validate rclone is available
         self._validate_rclone()
@@ -59,6 +74,17 @@ class rclone_client:
         self._create_remote_folder(self.sub_folder)
 
         logger.info(f"Created rclone client for {self.remote}:{self.sub_folder}")
+
+    def _validate_remote_name(self) -> None:
+        """Validate remote name contains only safe characters."""
+        if not self.remote:
+            raise CriticalError("Remote name cannot be empty")
+
+        if not self.VALID_REMOTE_PATTERN.match(self.remote):
+            raise CriticalError(
+                f"Invalid remote name '{self.remote}'. "
+                f"Remote names may only contain letters, numbers, underscores, hyphens, and spaces."
+            )
 
     def _validate_rclone(self) -> None:
         """Validate rclone is installed and accessible."""
@@ -184,7 +210,7 @@ class rclone_client:
         """Upload a single file using rclone copyto."""
         result = self._run_rclone(
             ['copyto', local_path, remote_path] + self.UPLOAD_FLAGS,
-            timeout=120
+            timeout=self.timeout
         )
 
         if result.returncode != 0:
